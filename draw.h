@@ -1,28 +1,30 @@
 #ifndef DRAW_H
 #define DRAW_H
-
 #include<QWidget>
+#include <QObject>
 #include<QGraphicsItem>
-#include "QPainter"
+#include <QPainter>
+#include <QStyleOptionGraphicsItem>
+#include <QGraphicsSceneMouseEvent>
 #include "shape.h"
 //#include "state.h"
 class draw
 {
 public:
-    QPainter painter;
-    int GetShapeType();
+//    QPainter painter;
+//    int GetShapeType();
     draw();
-    void drawshape();
-    void drawPoint(QPainter *painter);
-    void drawCircle(QPainter* painter);
-    Geometry* Create();
-    Geometry* ReDraw();
+//    void drawshape();
+//    void drawPoint(QPainter *painter);
+//    void drawCircle(QPainter* painter);
+//    Geometry* Create();
+//    Geometry* ReDraw();
 
-    Geometry* geometry;
-    Point m_curPoint;
-    Circle m_curcircle;
-    Rectangle m_currectangle;
-    Sector m_cursector;
+//    Geometry* geometry;
+//    Point m_curPoint;
+//    Circle m_curcircle;
+//    Rectangle m_currectangle;
+//    Sector m_cursector;
 
 };
 //virtual double Area() const { return 0; };
@@ -43,14 +45,44 @@ protected:
     bool m_selected;//是否被选择
 
 };
-class PointItem:public GraphicsBaseItem,Point{
+class PointItem:public QObject,public QGraphicsItem,Point{
+    Q_OBJECT
 public:
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-               QWidget *widget){
-        painter->drawPoint(point.x,point.y);
+    PointItem(QGraphicsItem *parent)
+        :QGraphicsItem(parent){}
+    PointItem(QPointF point,QGraphicsItem *parent = nullptr){
+//        , QGraphicsItem *parent = nullptr
+        this->setFlags(QGraphicsItem::ItemIsMovable |
+        //                   QGraphicsItem::ItemIsFocusable |
+                           QGraphicsItem::ItemIsSelectable);
+    };
+    PointItem(PointItem&a){
+        point.x=a.point.x;
+        point.y=a.point.y;
     }
-    bool IsContain(Point& pnt) const;
-private:
+    void SetItem(QPointF a){
+        point.x=a.x();
+        point.y=a.y();
+    };
+  void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+               QWidget *widget){
+      Q_UNUSED(widget);
+      Q_UNUSED(option);
+        painter->save();
+
+        // 设置画笔和画刷
+        painter->setPen(QPen(Qt::black, 1));
+        painter->setBrush(Qt::green);
+        if(point.x!=NULL){
+        painter->drawPoint(point.x,point.y);
+        }
+        painter->restore();
+    };
+//    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
+    QRectF boundingRect() const override{};
+//    void setRect(const QRectF& rect){QRect*m_rect = rect; this->update(); }
+    friend bool Point::IsContain(Point &pnt) const;
+public:
     Point point;
 };
 class CricleItem:public GraphicsBaseItem,Circle{

@@ -29,14 +29,16 @@ SOURCES += \
         mainwindow.cpp \
     draw.cpp \
     mywidget.cpp \
-    state.cpp
+    state.cpp \
+    mygraphicsview.cpp
 
 HEADERS += \
         mainwindow.h \
     state.h \
     draw.h \
     mywidget.h \
-    shape.h
+    shape.h \
+    mygraphicsview.h
 
 FORMS += \
         mainwindow.ui \
