@@ -34,14 +34,25 @@ MainWindow::MainWindow(QWidget *parent) :
     //以上是右侧悬浮窗口（用以显示图层图层）代码
 
     QToolBar* tb=addToolBar("Tool Bar");
-    QAction* action=new QAction("",NULL);
-    action->setToolTip("Open");
-    tb->addAction(action);
-    QAction*actionselect=new QAction("",NULL);
-    actionselect->setToolTip("select");
-    tb->addAction(actionselect);
+    QAction* open=new QAction("",NULL);
+    open->setToolTip("Open");
+    tb->addAction(open);
+    QAction *select=new QAction("",NULL);
+    select->setToolTip("select");
+    tb->addAction(select);
     //!没搞完
     //菜单栏的设置（之后会设置堆栈录入子菜单图标）
+    connect(select,&QAction::triggered,[=](){
+        m_editstate =Select;
+    });
+    connect(select, &QAction::triggered,
+            ui->graphicsView,
+            [=]()
+            {
+                ui->graphicsView->SetState(Edit);
+            }
+            );
+    //选择状态
 
     //设置graphicsView属性，详细可以搜索“GraphicsView”关键词
     //graphicsview是中间的白框，QGraphicsItem是抽象的图形类，圆、矩形等等形状都是它的子类
@@ -62,7 +73,29 @@ MainWindow::MainWindow(QWidget *parent) :
     //bool isActive() const：true为被选中
     //设置图元指针为pShape
     //QPointF pos = pShape->pos();得到图元坐标
+    QMenu *pMenu = new QMenu(ui->graphicsView);
+    QAction *mes = new QAction(tr("编辑所选项大小"), this);
+    QAction *color=new QAction(tr("编辑所选项颜色"),this);
+    QAction *delete1= new QAction(tr("删除所选项"), this);
+    QAction *quit = new QAction(tr("取消"), this);
 
+    /* 添加菜单项 */
+    pMenu->addAction(mes);
+    pMenu->addAction(color);
+    pMenu->addAction(delete1);
+    pMenu->addAction(quit);
+
+    /* 连接槽函数 */
+    connect(mes, SIGNAL(triggered()), this, SLOT(message()));
+    connect(color,SIGNAL(triggered()),this,SLOT(message()));
+    connect(delete1,SIGNAL(triggered()), this, SLOT(deleteshape()));
+    connect(quit, SIGNAL(triggered()), this, SLOT(close()));  //直接触发窗口的close函数
+    ui->graphicsView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->graphicsView,&QLabel::customContextMenuRequested,[=](const QPoint &pos)
+        {
+            pMenu->exec(QCursor::pos());
+        });
+    //菜单设置
 //    connect(ui->actionopen, SIGNAL(clicked()), this, SLOT(DrawMyPoint(QPointF point)));
 //    ui->setupUi(this);
 //    connect(mywidget,SIGNAL(send_cwin()),this,SLOT(on_actionopen_triggered()));
@@ -154,6 +187,7 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
 void MainWindow::initGraphicsSystem()
 {
     QRectF rect(-200,-100,400,200);
@@ -472,15 +506,83 @@ void MainWindow::on_actionopen_triggered()
 }
 //open菜单按钮响应函数
 void MainWindow::SetBackGround(){
-
+//    QPointF pointScene = ui->graphicsView->mapToScene(e->pos()); //转换到Scene坐标
+//    QGraphicsItem *item = NULL;
+//    item = m_scene->itemAt(pointScene, ui->graphicsView->transform()); //获取光标下的绘图项
+    QGraphicsItem *item = m_scene->selectedItems().at(0);
+    switch (item->type())  //绘图项的类型
+                    {
+                          case QGraphicsRectItem::Type: //矩形框
+                          {
+                            QGraphicsRectItem *theItem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+                            setBrushColor(theItem);
+                            break;
+                          }
+                          case QGraphicsEllipseItem::Type: // 椭圆
+                          {
+                            QGraphicsEllipseItem *theItem;
+                            theItem = qgraphicsitem_cast<QGraphicsEllipseItem*>(item);
+                            setBrushColor(theItem);
+                            break;
+                          }
+                          case QGraphicsPolygonItem::Type: //多边形
+                          {
+                            QGraphicsPolygonItem *theItem = qgraphicsitem_cast<QGraphicsPolygonItem*>(item);
+                            setBrushColor(theItem);
+                            break;
+                          }
+                          case QGraphicsLineItem::Type: //直线，设置线条颜色
+                          {
+                            QGraphicsLineItem *theItem = qgraphicsitem_cast<QGraphicsLineItem*>(item);
+                            QPen pen = theItem->pen();
+                            QColor color = theItem->pen().color();
+                            color = QColorDialog::getColor(color,this,"选择线条颜色");
+                            if (color.isValid())
+                            {
+                                pen.setColor(color);
+                                theItem->setPen(pen);
+                            }
+                            break;
+                          }
+                         case QGraphicsItemGroup::Type:
+                         {
+                            QGraphicsItemGroup *thegroup = qgraphicsitem_cast<QGraphicsItemGroup*>(item);
+                            QColor color = QColorDialog::getColor(color,this,"选择线条颜色");
+                            QList<QGraphicsItem *>	items_list = m_scene->items();
+                            for (int i = 0; i < items_list.size(); i++) {
+                                if (items_list[i]->type() == QGraphicsLineItem::Type
+                                        /*&& items_list[i]->data(group_id_key).toInt() == thegroup->data(group_id_key).toInt()*/)
+                                {
+                                    QGraphicsLineItem *theItem = qgraphicsitem_cast<QGraphicsLineItem*>(items_list[i]);
+                                    QPen pen = theItem->pen();
+                                    if (color.isValid())
+                                    {
+                                        pen.setColor(color);
+                                        theItem->setPen(pen);
+                                    }
+                                }
+                            }
+                            break;
+                         }
 };
-void MainWindow::SetQPen(){}
+};
+void MainWindow::deleteshape(){
+        // 删除所选中的绘图项
+        int cnt = m_scene->selectedItems().count();
+        if (cnt > 0)
+        for (int i = 0; i < cnt; i++) {
+            QGraphicsItem *item = m_scene->selectedItems().at(0);
+            m_scene->removeItem(item);
+        }
+    m_scene->clearSelection();
+};
+void MainWindow::SetQPen(){};
 void MainWindow::drawshape(){
     m_scene->clear();
     //清空图层
     //!未完成：将之前修改的图层进行存储。
 
-}
+};
 //设置状态类：创造状态->创建点、线、圆……多边形状态。
 //单击绘制点，拖动绘制矩形与圆，单击绘制直线，右键停止，单击绘制多边形，右键停止，除点外，图形绘制完成后，创造模式结束
 //绘制图形

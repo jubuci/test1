@@ -38,6 +38,8 @@ private slots:
     void on_actionopen_triggered();
     void initGraphicsSystem();
     void drawshape();
+    void deleteshape();
+    //设置菜单
 public slots:
     void mouseReleased_slot(QMouseEvent *e);
     void mousePressed_slot(QMouseEvent *e);
